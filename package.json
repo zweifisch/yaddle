@@ -1,0 +1,20 @@
+{
+  "name": "yaddle",
+  "version": "0.0.1",
+  "description": "Yet Another Data Format Description Language",
+  "main": "index.js",
+  "scripts": {
+    "test": "./node_modules/mocha/bin/mocha --compilers coffee:coffee-script/register test.coffee"
+  },
+  "keywords": [
+    "json",
+    "schema"
+  ],
+  "author": "zf",
+  "license": "MIT",
+  "devDependencies": {
+    "chai": "^2.3.0",
+    "coffee-script": "^1.9.3",
+    "mocha": "^2.2.5"
+  }
+}
