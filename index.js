@@ -410,7 +410,9 @@
     },
     loads: function(file) {
       return new Promise(function(resolve, reject) {
-        return fs.readFile(file, function(err, content) {
+        return require("fs").readFile(file, {
+          encoding: "utf8"
+        }, function(err, content) {
           if (err) {
             return reject(err);
           } else {

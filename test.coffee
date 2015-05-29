@@ -125,3 +125,49 @@ describe "yaddle", ->
                         type: "number"
                 additionalProperties: no
                 required: ["size", "count", "weight"]
+
+        it "should pass the readme example", ->
+            schema = """
+            role: admin | author | collaborator | role with space
+
+            user:
+                name: str{3,20}
+                age: int{10,200}
+                gender: male | female
+                roles: [$role]
+                description?: str{200}
+            """
+            load(schema).properties.user.should.be.deep.equal
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 20,
+                        "minLength": 3
+                    },
+                    "age": {
+                        "type": "number",
+                        "minimum": 10,
+                        "maximum": 200,
+                        "multipleOf": 1
+                    },
+                    "gender": {
+                        "enum": ["male", "female"]
+                    },
+                    "roles": {
+                        "type": "array",
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "enum": ["admin", "author", "collaborator", "role with space"]
+                                }
+                            ]
+                        }
+                    },
+                    "description": {
+                        "type": "string",
+                        "maxLength": 200
+                    }
+                },
+                "required": ["name", "age", "gender", "roles"],
+                "additionalProperties": false

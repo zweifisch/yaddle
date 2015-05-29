@@ -300,6 +300,6 @@ module.exports =
     load: load = (input)-> generateJSONSchema(parse input)
     loads: (file)->
         new Promise (resolve, reject)->
-            fs.readFile file, (err, content)->
+            require("fs").readFile file, encoding: "utf8", (err, content)->
                 if err then reject err else resolve load content
     ParseError: ParseError

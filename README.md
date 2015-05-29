@@ -9,7 +9,7 @@ user:
   name: str{3,20}
   age: int{10,200}
   gender: male | female
-  roles: [role]
+  roles: [$role]
   description?: str{200}
 ```
 
@@ -33,10 +33,14 @@ translate to json-schema
         "gender": {
             "enum": ["male", "female"]
         },
-        roles: {
+        "roles": {
             "type": "array",
             "items": {
-                "enum": ["admin", "author", "collaborator", "role with space"]
+                "anyOf": [
+                    {
+                        "enum": ["admin", "author", "collaborator", "role with space"]
+                    }
+                ]
             }
         },
         "description": {
@@ -56,7 +60,7 @@ var yaddle = require("yaddle");
 yaddle.loads("some.ydl");
 ```
 
-## more details
+## more details(TBD)
 
 ### string
 
