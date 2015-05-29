@@ -6,7 +6,9 @@
   keywords = {
     str: true,
     int: true,
-    num: true
+    num: true,
+    "null": true,
+    bool: true
   };
 
   matchArray = function(input, pattern, shift) {
@@ -340,22 +342,30 @@
           }
           if ("{" === input[i + 1]) {
             match(input, i + 1, ["{", "$min", ",", "$max", "}"], function(min, max) {
-              node.minimum = +min;
-              node.maximum = +max;
+              node.minimum = token === "int" ? +min : parseFloat(min);
+              node.maximum = token === "int" ? +max : parseFloat(max);
               return i += 5;
             }, ["{", "$min", ",", "}"], function(min) {
-              node.minimum = +min;
+              node.minimum = token === "int" ? +min : parseFloat(min);
               return i += 4;
             }, ["{", ",", "$max", "}"], function(max) {
-              node.maximum = +max;
+              node.maximum = token === "int" ? +max : parseFloat(max);
               return i += 4;
             }, ["{", "$max", "}"], function(max) {
-              node.maximum = +max;
+              node.maximum = token === "int" ? +max : parseFloat(max);
               return i += 3;
             }, function() {
               throw Error("incorrect str format");
             });
           }
+          break;
+        case "null":
+          node = getLast();
+          node.type = "null";
+          break;
+        case "bool":
+          node = getLast();
+          node.type = "boolean";
           break;
         case "[":
           items = [];

@@ -3,6 +3,8 @@ keywords =
     str: yes
     int: yes
     num: yes
+    null: yes
+    bool: yes
 
 matchArray = (input, pattern, shift=0)->
     ret = []
@@ -251,19 +253,25 @@ generateJSONSchema = (input)->
                 if "{" is input[i+1]
                     match input, i+1,
                         ["{", "$min", ",", "$max", "}"], (min, max)->
-                            node.minimum = +min
-                            node.maximum = +max
+                            node.minimum = if token is "int" then +min else parseFloat min
+                            node.maximum = if token is "int" then +max else parseFloat max
                             i += 5
                         ["{", "$min", ",", "}"], (min)->
-                            node.minimum = +min
+                            node.minimum = if token is "int" then +min else parseFloat min
                             i += 4
                         ["{", ",", "$max", "}"], (max)->
-                            node.maximum = +max
+                            node.maximum = if token is "int" then +max else parseFloat max
                             i += 4
                         ["{", "$max", "}"], (max)->
-                            node.maximum = +max
+                            node.maximum = if token is "int" then +max else parseFloat max
                             i += 3
                         -> throw Error "incorrect str format"
+            when "null"
+                node = getLast()
+                node.type = "null"
+            when "bool"
+                node = getLast()
+                node.type = "boolean"
             when "["
                 items = []
                 while input[++i] isnt "]"
