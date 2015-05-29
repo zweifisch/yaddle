@@ -1,5 +1,8 @@
 # yaddle
 
+[![NPM Version][npm-image]][npm-url]
+[![Build Status][travis-image]][travis-url]
+
 Yet Another Data format Description LanguagE
 
 ```yaml
@@ -120,3 +123,8 @@ key: str
     "additionalProperties": true
 }
 ```
+
+[npm-image]: https://img.shields.io/npm/v/yaddle.svg?style=flat
+[npm-url]: https://npmjs.org/package/yaddle
+[travis-image]: https://img.shields.io/travis/zweifisch/yaddle.svg?style=flat
+[travis-url]: https://travis-ci.org/zweifisch/yaddle

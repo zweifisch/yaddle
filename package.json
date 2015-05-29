@@ -16,5 +16,13 @@
     "chai": "^2.3.0",
     "coffee-script": "^1.9.3",
     "mocha": "^2.2.5"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zweifisch/yaddle.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zweifisch/yaddle/issues"
+  },
+  "homepage": "https://github.com/zweifisch/yaddle#readme"
 }
