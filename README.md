@@ -53,7 +53,7 @@ translate to json-schema
 
 ```javascript
 var yaddle = require("yaddle");
-yaddle.loads("some.ydl").jsonSchema();
+yaddle.loads("some.ydl");
 ```
 
 ## more details
@@ -75,7 +75,7 @@ str{1,} /pattern/
 ### array
 
 ```yaml
-[int | str]{1,10} unique
+[int, str]{1,10}
 ```
 
 ```javascript
@@ -83,16 +83,17 @@ str{1,} /pattern/
     "type": "array",
     "minItems": 1,
     "maxItems": 10,
-    "uniqueItems": true,
-    "items": [
-        {
-            "type": "number",
-            "multipleOf": 1
-        },
-        {
-            "type": "string"
-        }
-    ]
+    "items": {
+        anyOf: [
+            {
+                "type": "number",
+                "multipleOf": 1
+            },
+            {
+                "type": "string"
+            }
+        ]
+    }
 }
 ```
 
@@ -114,25 +115,4 @@ key: str
     }
     "additionalProperties": true
 }
-```
-
-```yaml
-arrows:
-  - from: str{18}
-    to: str{18} /^.*$/
-    strength: int{1,17}
-    type:
-      - "inbound"   # literal
-      - "outbound"
-name: str{3,20}
-description?: str
-tags:
-  - str{1,20}
-location:
-  x: 
-    - float
-    - str{18}
-  y:
-    - float
-    - str{18}
 ```

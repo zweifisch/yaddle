@@ -23,7 +23,7 @@ match = (input, shift, args...)->
 ParseError = (message, lineno, pos)->
     "#{message} at #{lineno}:#{pos}"
 
-parseYAML = (input)->
+parse = (input)->
 
     ret = {}
 
@@ -36,7 +36,7 @@ parseYAML = (input)->
 
     prev = null
 
-    lineno = 1
+    lineno = 0
     pos = 0
 
     buffered = ""
@@ -45,8 +45,19 @@ parseYAML = (input)->
 
     tokens = []
 
-    lengthOpen = no
-    skipWhiteSpace = no
+    cbracketOpen = no
+    sbracketOpen = no
+    orOpen = no
+    quoteOpen = no
+    optionalKey = no
+
+    startNewline = yes
+
+    collectToken = ->
+        if trimed = buffered.trimRight()
+            tokens.push trimed
+        buffered = ""
+        skip = yes
 
     for i in [0...input.length]
         cur = input.charAt i
@@ -65,7 +76,10 @@ parseYAML = (input)->
             when "\n"
                 startNewline = yes
                 lastlineIndent = curlineIndent
-                tokens.push buffered if buffered
+                collectToken()
+                if orOpen
+                    orOpen = no
+                    tokens.push ":or-close"
             when " "
                 if pos is 1
                     if indent.with
@@ -75,7 +89,7 @@ parseYAML = (input)->
                     switch prev
                         when null then throw ParseError "unexpected indentation", lineno, pos
                     indenting = yes
-                skip = not indenting and skipWhiteSpace
+                skip = not indenting and not buffered and not quoteOpen
             when "\t"
                 if pos is 1
                     if indent.with
@@ -85,40 +99,72 @@ parseYAML = (input)->
                     switch prev
                         when null then throw ParseError "unexpected indentation", lineno, pos
                     indenting = yes
-            when ":"
-                tokens.push ":indent"
-                tokens.push curlineIndent
-                tokens.push ":key"
-                tokens.push buffered
+            when "$"
+                tokens.push "$"
                 buffered = ""
                 skip = yes
-                skipWhiteSpace = yes
+            when "?"
+                throw ParseError "unexpected ?", lineno, pos if optionalKey
+                optionalKey = yes
+                skip = yes
+            when ":"
+                if optionalKey
+                    optionalKey = no
+                    tokens.push ":key-opt"
+                else
+                    tokens.push ":key"
+                collectToken()
             when "{"
                 throw ParseError "unexpected type '#{buffered}'", lineno, pos unless keywords[buffered]
-                tokens.push buffered
+                collectToken()
                 tokens.push "{"
-                buffered = ""
-                skip = yes
-                lengthOpen = yes
+                cbracketOpen = yes
             when "}"
-                if not lengthOpen
+                if not cbracketOpen
                     throw ParseError "unexpected }", lineno, pos
-                lengthOpen = no
-                tokens.push buffered if buffered
+                cbracketOpen = no
+                collectToken()
                 tokens.push "}"
-                buffered = ""
-                skip = yes
             when ","
-                if not lengthOpen
+                if not cbracketOpen and not sbracketOpen
                     throw ParseError "unexpected ,", lineno, pos
-                tokens.push buffered if buffered
-                tokens.push ","
-                buffered = ""
-                skip = true
+                collectToken()
+                if cbracketOpen
+                    tokens.push ","
+                if orOpen
+                    orOpen = no
+                    tokens.push ":or-close"
+            when "["
+                if sbracketOpen
+                    throw ParseError "unexpected [", lineno, pos
+                collectToken()
+                tokens.push "["
+                sbracketOpen = yes
+            when "]"
+                if not sbracketOpen
+                    throw ParseError "unexpected ]", lineno, pos
+                sbracketOpen = no
+                collectToken()
+                if orOpen
+                    orOpen = no
+                    tokens.push ":or-close"
+                tokens.push "]"
+            when "|"
+                throw ParseError "unexpected |", lineno, pos unless buffered
+                if not orOpen
+                    orOpen = true
+                    tokens.push ":or"
+                collectToken()
+            when "\""
+                throw ParseError "unexpected \"", lineno, pos if buffered and not quoteOpen
+                quoteOpen = not quoteOpen
+                if not quoteOpen
+                    tokens.push buffered
+                    buffered = ""
+                skip = yes
             when "\r"
                 skip = yes
             else
-                skipWhiteSpace = no
                 if indenting
                     indenting = no
                     if indent.count
@@ -126,90 +172,126 @@ parseYAML = (input)->
                     else
                         indent.count = buffered.length
                     curlineIndent = buffered.length / indent.count
-                    buffered = ""
                     if curlineIndent > lastlineIndent + 1
                         throw ParseError "over indented", lineno, pos
+                    tokens.push ":indent"
+                    tokens.push curlineIndent
+                    buffered = ""
+                if pos is 1
+                    tokens.push ":indent"
+                    tokens.push 0
 
         if skip
             skip = no
         else
             buffered += cur
         prev = cur
-    tokens.push buffered if buffered
+    collectToken()
     tokens
 
 generateJSONSchema = (input)->
     ret = {}
     level = -1
     objectStack = [{}]
+
+    getLast = ->
+        node = objectStack[objectStack.length - 1]
+        if Array.isArray node
+            node.push {}
+            node = node[node.length - 1]
+        node
+
     for i in [0...input.length]
         token = input[i]
         switch token
             when ":indent"
-                indent = input[i+1]
-                key = input[i+3]
+                indent = input[++i]
                 if indent > level
-                    objectStack.push {}
-                    objectStack[objectStack.length - 2].properties ?= {}
-                    objectStack[objectStack.length - 2].type ?= "object"
-                    objectStack[objectStack.length - 2].properties[key] = objectStack[objectStack.length - 1]
-                    i += 4
+                    objectStack[objectStack.length - 1].properties ?= {}
+                    objectStack[objectStack.length - 1].type = "object"
+                    objectStack[objectStack.length - 1].additionalProperties = no
                 else if indent is level
-                    objectStack[objectStack.length - 1] = {}
-                    objectStack[objectStack.length - 2].properties[key] = objectStack[objectStack.length - 1]
-                    objectStack[objectStack.length - 2].properties[key] = objectStack[objectStack.length - 1]
-                    i += 4
+                    if Array.isArray objectStack[objectStack.length - 1]
+                        objectStack.pop()
+                    objectStack.pop()
                 else if indent < level
                     for i in [0..(level - indent)]
                         objectStack.pop()
                 level = indent
+            when ":key", ":key-opt"
+                key = input[++i]
+                node = {}
+                objectStack[objectStack.length - 1].properties[key] = node
+                objectStack[objectStack.length - 1].required ?= []
+                objectStack[objectStack.length - 1].required.push key if token isnt ":key-opt"
+                objectStack.push node
             when "str"
-                node = objectStack[objectStack.length - 1]
+                node = getLast()
                 node.type = "string"
                 if "{" is input[i+1]
                     match input, i+1,
                         ["{", "$min", ",", "$max", "}"], (min, max)->
-                            node.minLength = min
-                            node.maxLength = max
+                            node.minLength = +min
+                            node.maxLength = +max
                             i += 5
                         ["{", "$min", ",", "}"], (min)->
-                            node.minLength = min
+                            node.minLength = +min
                             i += 4
                         ["{", ",", "$max", "}"], (max)->
-                            node.maxLength = max
+                            node.maxLength = +max
                             i += 4
                         ["{", "$max", "}"], (max)->
-                            node.maxLength = max
+                            node.maxLength = +max
                             i += 3
                         -> throw Error "incorrect str format"
-            when "int"
-                node = objectStack[objectStack.length - 1]
+            when "int", "num"
+                node = getLast()
                 node.type = "number"
-                node.multipleOf = 1
+                node.multipleOf = 1 if token is "int"
                 if "{" is input[i+1]
                     match input, i+1,
                         ["{", "$min", ",", "$max", "}"], (min, max)->
-                            node.minimum = min
-                            node.maximum = max
+                            node.minimum = +min
+                            node.maximum = +max
                             i += 5
                         ["{", "$min", ",", "}"], (min)->
-                            node.minimum = min
+                            node.minimum = +min
                             i += 4
                         ["{", ",", "$max", "}"], (max)->
-                            node.maximum = max
+                            node.maximum = +max
                             i += 4
                         ["{", "$max", "}"], (max)->
-                            node.maximum = max
+                            node.maximum = +max
                             i += 3
                         -> throw Error "incorrect str format"
-            when ":key"
-                "pass"
-    objectStack[0].properties
+            when "["
+                items = []
+                while input[++i] isnt "]"
+                    items.push input[i]
+                node = getLast()
+                node.type = "array"
+                objectStack.push []
+                node.items = anyOf: objectStack[objectStack.length - 1] 
+            when ":or"
+                items = []
+                while input[++i] isnt ":or-close"
+                    items.push input[i]
+                node = getLast()
+                node.enum = items
+            when "$"
+                lookup = input[++i]
+                throw Error "$#{lookup} not defined" unless lookup of objectStack[0].properties
+                node = getLast()
+                schema = objectStack[0].properties[lookup]
+                for key,val of schema
+                    node[key] = val
+    objectStack[0]
 
 module.exports =
-    parse: parse = (input)-> generateJSONSchema parseYAML input
+    parse: parse
+    load: load = (input)-> generateJSONSchema(parse input)
     loads: (file)->
         new Promise (resolve, reject)->
             fs.readFile file, (err, content)->
-                if err then reject err else resolve parse content
+                if err then reject err else resolve load content
     ParseError: ParseError
