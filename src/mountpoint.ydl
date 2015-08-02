@@ -1,0 +1,20 @@
+@"http://some.site.somewhere/entry-schema#"
+@diskDevice:
+    type: disk
+    device: /^/dev/[^/]+(/[^/]+)*$/
+@diskUUID:
+    type: disk
+    label: /^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/  # noqa
+@nfs:
+    type: nfs
+    remotePath: /^(/[^/]+)+$/
+    server: %hostname | %ipv4 | %ipv6
+@tmpfs:
+    type: tmpfs
+    sizeInMB: int{16,512}
+
+storage: @diskDevice | @diskUUID | @nfs | @tmpfs
+fstype?: ext3 | ext4 | btrfs
+options?: [str]{1,}!
+readonly?: bool
+...

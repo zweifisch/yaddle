@@ -6,13 +6,13 @@
 Yet Another Data format Description LanguagE
 
 ```yaml
-role: admin | author | collaborator | role with space
+@role: admin | author | collaborator | "role with space"
 
 user:
   name: str{3,20}
   age: int{10,200}
   gender: male | female
-  roles: [$role]
+  roles: [@role]
   description?: str{200}
 ```
 
@@ -20,109 +20,77 @@ translate to json-schema
 
 ```javascript
 {
-    "type": "object",
-    "properties": {
+  "type": "object",
+  "properties": {
+    "user": {
+      "type": "object",
+      "properties": {
         "name": {
-            "type": "string",
-            "maxLength": 20,
-            "minLength": 3
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 20
         },
         "age": {
-            "type": "number",
-            "minimum": 10,
-            "maximum": 200,
-            "multipleOf": 1
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 200
         },
         "gender": {
-            "enum": ["male", "female"]
+          "enum": [
+            "male",
+            "female"
+          ]
         },
         "roles": {
-            "type": "array",
-            "items": {
-                "anyOf": [
-                    {
-                        "enum": ["admin", "author", "collaborator", "role with space"]
-                    }
-                ]
-            }
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/role"
+          }
         },
         "description": {
-            "type": "string",
-            "maxLength": 200
+          "type": "string",
+          "maxLength": 200
         }
-    },
-    "required": ["name", "age", "gender", "roles"],
-    "additionalProperties": false
+      },
+      "required": [
+        "name",
+        "age",
+        "gender",
+        "roles"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "user"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "role": {
+      "enum": [
+        "admin",
+        "author",
+        "collaborator",
+        "role with space"
+      ]
+    }
+  }
 }
 ```
 
 ## api
 
-```javascript
+```js
+require("babel/polyfill");
 var yaddle = require("yaddle");
-yaddle.loads("some.ydl");
+yaddle.load("some.ydl").then(...);
+
+yaddle.loads(schema).then(...);
 ```
 
-## more details(TBD)
+## more details
 
-### string
-
-```yaml
-str{1,} /pattern/
-```
-
-```javascript
-{
-    "type": "string",
-    "minLength": 1,
-    "pattern": "pattern"
-}
-```
-
-### array
-
-```yaml
-[int, str]{1,10}
-```
-
-```javascript
-{
-    "type": "array",
-    "minItems": 1,
-    "maxItems": 10,
-    "items": {
-        anyOf: [
-            {
-                "type": "number",
-                "multipleOf": 1
-            },
-            {
-                "type": "string"
-            }
-        ]
-    }
-}
-```
-
-### object
-
-```yaml
-key: str
-*: true
-```
-
-```javascript
-{
-    "type": "object",
-    "properties": {
-        "key": {
-            "type": "string"
-        },
-        "required": ["key"]
-    }
-    "additionalProperties": true
-}
-```
+see [yaddle-py](https://github.com/zweifisch/yaddle-py#more-details)
 
 [npm-image]: https://img.shields.io/npm/v/yaddle.svg?style=flat
 [npm-url]: https://npmjs.org/package/yaddle
