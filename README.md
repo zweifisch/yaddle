@@ -13,7 +13,7 @@ user:
   age: int{10,200}
   gender: male | female
   roles: [@role]
-  description?: str{200}
+  description?: str{,200}
 ```
 
 translate to json-schema

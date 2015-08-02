@@ -1,6 +1,6 @@
 {
   "name": "yaddle",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Yet Another Data Format Description Language",
   "main": "index.js",
   "scripts": {
@@ -27,5 +27,8 @@
   "bugs": {
     "url": "https://github.com/zweifisch/yaddle/issues"
   },
-  "homepage": "https://github.com/zweifisch/yaddle#readme"
+  "homepage": "https://github.com/zweifisch/yaddle#readme",
+  "dependencies": {
+    "mattone": "0.0.1"
+  }
 }
