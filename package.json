@@ -1,6 +1,6 @@
 {
   "name": "yaddle",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Yet Another Data Format Description Language",
   "main": "index.js",
   "scripts": {
